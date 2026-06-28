@@ -57,7 +57,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     const playlist = await Playlist.findById(playlistId)
             .populate("owner","username fullname avatar")
-            .populate("videos")
+            .populate("videos","title thumbnail duration views")
     
     if(!playlist){
         throw new ApiError(404,"playlist not found")
@@ -88,11 +88,17 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(404,"playlist not found")
     }
 
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
     if(!playlist.owner.equals(req.user._id)){
         throw new ApiError(403,"unauthorized")
     }
 
-    if(playlist.videos.includes(videoId)){
+    if(playlist.videos.some(id => id.equals(videoId))){
         throw new ApiError(400,"video already exist in playlist")
     }
 
@@ -186,8 +192,8 @@ const updatePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(403,"Unauthorized")
     }
 
-    if(name) playlist.name = name
-    if(description) playlist.description = description;
+    if(name?.trim()) playlist.name = name
+    if(description?.trim()) playlist.description = description;
 
     await playlist.save();
 
